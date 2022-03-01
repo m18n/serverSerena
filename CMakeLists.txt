@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(ServerSerena)
+SET(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++11 -pthread")
 file(GLOB CPPS "*.cpp")
 add_executable(${PROJECT_NAME} ${CPPS})
+target_link_libraries (${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})

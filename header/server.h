@@ -4,17 +4,25 @@
 #include <iostream>
 #include <netinet/in.h>
 #include <unistd.h>
-#include<string.h>
-#include<vector>
+#include <string.h>
+#include <vector>
+#include<mutex>
 using namespace std;
-void recV(int sock,char* buf,int size);
-void senD(int sock,const char* buf,int size);
+int recV(int sock, char *buf, int size);
+int senD(int sock, const char *buf, int size);
+struct client
+{
+    int socket;
+    int city;
+    bool conn = false;
+};
+
 class Server
 {
 private:
     void InitilServer(int port)
     {
-         
+
         struct sockaddr_in addr;
         char buf[1024];
         int bytes_read;
@@ -34,6 +42,15 @@ private:
         }
 
         listen(listener, 1);
+        clients.resize(50);
+    }
+    int SearchIndex()
+    {
+        for (int i = 0; i < clients.size(); i++)
+        {
+            if (clients[i].conn == false)
+                return i;
+        }
     }
 
 public:
@@ -47,6 +64,8 @@ public:
     }
     void StartProc()
     {
+        char city[20];
+        mutex mt;
         while (1)
         {
             int sock = accept(listener, NULL, NULL);
@@ -55,14 +74,49 @@ public:
                 perror("accept");
                 exit(3);
             }
-
-            std::cout<<"CONNECTCLIENT\n";
-            char buff[20];
-            recV(sock,buff,20);
-            close(sock);
+            
+            
+            std::cout << "CONNECTCLIENT\n";
+            int index = SearchIndex();
+            recV(sock, city, 20);
+            
+            this->clients[index].conn = true;
+            this->clients[index].socket = sock;
+            this->clients[index].city = atoi(city);
+            std::cout<< "CITY " << this->clients[index].city << "\n";
+            std::cout<<"ADRESS"<<&this->clients<<"\n";
         }
     }
-
+    void SPAMSerSTART(int city)
+    {
+         std::cout<<"ADRESS"<<&this->clients<<"\n";
+        for (int i = 0; i < this->clients.size(); i++)
+        {
+            if (this->clients[i].conn == true)
+            {
+                senD(this->clients[i].socket, "START", 6);
+            }
+        }
+    }
+    void SPAMSerSTOP(int city)
+    {
+        for (int i = 0; i < clients.size(); i++)
+        {
+            if (clients[i].conn == true)
+            {
+                senD(clients[i].socket, "STOP", 6);
+            }
+        }
+    }
+    ~Server(){
+        std::cout<<"DISTRUCK\n";
+        for(int i=0;i<clients.size();i++){
+            if(clients[i].conn==true){
+                close(clients[i].socket);
+            }
+        }
+    }
 private:
+    std::vector<client> clients;
     int listener;
 };
